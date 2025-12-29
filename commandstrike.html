@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Full Screen Game Iframe</title>
+<style>
+    /* 1. Reset: Essential to remove default browser margins and padding */
+    body, html {
+        margin: 0;
+        padding: 0;
+        /* 2. Full Height: Ensure the body and html elements cover the entire viewport */
+        height: 100%;
+        /* 3. Prevent Scrollbars: Hides any scrollbars that might appear */
+        overflow: hidden;
+    }
+
+    /* Container: Set to 100% of the viewport */
+    .iframe-container {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Iframe: Set to 100% of its container (which is 100% of the viewport) */
+    .responsive-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+</style>
+</head>
+<body>
+
+    <div class="iframe-container">
+        <iframe src="https://html5.gamedistribution.com/53cb97cc3c334a02b3b7dd4c66c6c45c/"
+                allowfullscreen
+                frameborder="0"
+                class="responsive-iframe">
+        </iframe>
+    </div>
+
+</body>
+</html>
