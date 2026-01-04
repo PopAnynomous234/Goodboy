@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agar.io Offline</title>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #f0f0f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        canvas { display: block; background-image: linear-gradient(to right, #ddd 1px, transparent 1px), linear-gradient(to bottom, #ddd 1px, transparent 1px); background-size: 50px 50px; }
+        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; background: rgba(255, 255, 255, 0.85); padding: 12px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div style="font-weight: bold; color: #333;">Mass: <span id="score">0</span></div>
+        <div style="font-size: 11px; color: #777; margin-top: 4px;">Guide with Mouse • Eat smaller, flee larger</div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+
+    const WORLD = { WIDTH: 4000, HEIGHT: 4000 };
+    const FOOD_COUNT = 1300;
+    const BOT_COUNT = 100;
+    const PLAYER_START_RADIUS = 50;
+    const SENSOR_RANGE = 600;
+
+    const NAMES = [
+        "ProGamer", "Blobby", "Ghost", "Rex", "Speedy", "Kanye's Ego", "Today's Menu", "Loading...",
+        "DankFart", "NopeTrain", "Mr.Giggles", "SillyGoose", "AbsoluteUnit", "Wojak", "GigaChad",
+        "LittleGuy", "Orbit", "Zenith", "Nebula", "Titan", "Pancakes", "Glitch", "Bouncer",
+        "Mars", "Venus", "Pluto", "Comet", "Starlight", "Shadow", "Hunter", "Predator", "NomNom"
+    ];
+
+    let mouseX = 0, mouseY = 0;
+    window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+    window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+    window.dispatchEvent(new Event('resize'));
+
+    class Entity {
+        constructor(x, y, radius, color, name = "") {
+            this.x = x; this.y = y; this.radius = radius; this.color = color;
+            this.name = name; this.exists = true;
+            this.angle = Math.random() * Math.PI * 2;
+            this.targetAngle = this.angle;
+            this.decisionTimer = 0;
+        }
+        get speed() { return Math.max(0.8, 6.5 - (this.radius / 25)); }
+       
+        draw(cX, cY) {
+            if (!this.exists) return;
+            ctx.beginPath();
+            ctx.arc(this.x - cX, this.y - cY, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            if (this.name) {
+                ctx.fillStyle = "white"; ctx.textAlign = "center";
+                ctx.font = `bold ${Math.max(12, this.radius / 2.5)}px sans-serif`;
+                ctx.fillText(this.name, this.x - cX, this.y - cY + 5);
+            }
+        }
+
+        grow(otherRadius) {
+            let currentArea = Math.PI * Math.pow(this.radius, 2);
+            let addedArea = Math.PI * Math.pow(otherRadius, 2);
+            this.radius = Math.sqrt((currentArea + addedArea) / Math.PI);
+        }
+
+        // Smoothly rotate current angle toward the target angle
+        lerpAngle() {
+            let diff = this.targetAngle - this.angle;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            this.angle += diff * 0.1; // 0.1 is the turn speed (lower = smoother/slower)
+        }
+    }
+
+    const player = new Entity(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, PLAYER_START_RADIUS, "#3498db", "YOU");
+    const orbs = [], bots = [];
+
+    function spawnOrb() {
+        const colors = ["#ff5555", "#55ff55", "#5555ff", "#ffff55", "#ff55ff", "#55ffff", "#26ff9a"];
+        orbs.push(new Entity(
+            Math.random() * WORLD.WIDTH, Math.random() * WORLD.HEIGHT,
+            Math.random() * 4 + 4,
+            colors[Math.floor(Math.random() * colors.length)]
+        ));
+    }
+
+    function spawnBot() {
+        bots.push(new Entity(
+            Math.random() * WORLD.WIDTH, Math.random() * WORLD.HEIGHT,
+            Math.random() * 20 + 15,
+            `hsl(${Math.random() * 360}, 70%, 50%)`,
+            NAMES[Math.floor(Math.random() * NAMES.length)]
+        ));
+    }
+
+    for (let i = 0; i < FOOD_COUNT; i++) spawnOrb();
+    for (let i = 0; i < BOT_COUNT; i++) spawnBot();
+
+    function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cX = player.x - canvas.width / 2, cY = player.y - canvas.height / 2;
+
+        // PLAYER
+        const pAngle = Math.atan2(mouseY - canvas.height / 2, mouseX - canvas.width / 2);
+        player.x = Math.max(0, Math.min(WORLD.WIDTH, player.x + Math.cos(pAngle) * player.speed));
+        player.y = Math.max(0, Math.min(WORLD.HEIGHT, player.y + Math.sin(pAngle) * player.speed));
+        if (player.radius > PLAYER_START_RADIUS) player.radius -= 0.006;
+
+        // BOTS
+        bots.forEach(bot => {
+            if (!bot.exists) return;
+            bot.decisionTimer--;
+
+            // 1. Sensory Check (Only every 5 frames to reduce flickering)
+            if (bot.decisionTimer <= 0) {
+                let closestFood = null, minDistFood = Infinity;
+                let closestPrey = null, minDistPrey = Infinity;
+                let biggestThreat = null, minDistThreat = Infinity;
+
+                [player, ...bots].forEach(other => {
+                    if (other === bot || !other.exists) return;
+                    let d = Math.hypot(bot.x - other.x, bot.y - other.y);
+                    if (d < SENSOR_RANGE) {
+                        if (other.radius > bot.radius * 1.15) {
+                            if (d < minDistThreat) { minDistThreat = d; biggestThreat = other; }
+                        } else if (bot.radius > other.radius * 1.15) {
+                            if (d < minDistPrey) { minDistPrey = d; closestPrey = other; }
+                        }
+                    }
+                });
+
+                if (biggestThreat) {
+                    bot.targetAngle = Math.atan2(bot.y - biggestThreat.y, bot.x - biggestThreat.x);
+                    bot.decisionTimer = 10;
+                } else if (closestPrey) {
+                    bot.targetAngle = Math.atan2(closestPrey.y - bot.y, closestPrey.x - bot.x);
+                    bot.decisionTimer = 20;
+                } else {
+                    orbs.forEach(o => {
+                        let d = Math.hypot(bot.x - o.x, bot.y - o.y);
+                        if (d < SENSOR_RANGE && d < minDistFood) { minDistFood = d; closestFood = o; }
+                    });
+                    if (closestFood) {
+                        bot.targetAngle = Math.atan2(closestFood.y - bot.y, closestFood.x - bot.x);
+                        bot.decisionTimer = 40;
+                    } else {
+                        bot.targetAngle += (Math.random() - 0.5) * 1;
+                        bot.decisionTimer = 60;
+                    }
+                }
+            }
+
+            // 2. Smooth Transition & Wall Avoidance
+            bot.lerpAngle();
+
+            const pad = 200;
+            if (bot.x < pad) bot.targetAngle = 0;
+            else if (bot.x > WORLD.WIDTH - pad) bot.targetAngle = Math.PI;
+            if (bot.y < pad) bot.targetAngle = Math.PI / 2;
+            else if (bot.y > WORLD.HEIGHT - pad) bot.targetAngle = -Math.PI / 2;
+
+            bot.x = Math.max(0, Math.min(WORLD.WIDTH, bot.x + Math.cos(bot.angle) * bot.speed));
+            bot.y = Math.max(0, Math.min(WORLD.HEIGHT, bot.y + Math.sin(bot.angle) * bot.speed));
+            if (bot.radius > 20) bot.radius -= 0.004;
+        });
+
+        // COLLISIONS
+        [player, ...bots].forEach(e => {
+            if (!e.exists) return;
+            for (let i = orbs.length - 1; i >= 0; i--) {
+                if (Math.hypot(e.x - orbs[i].x, e.y - orbs[i].y) < e.radius) {
+                    e.grow(orbs[i].radius);
+                    orbs.splice(i, 1);
+                    spawnOrb();
+                }
+            }
+            [player, ...bots].forEach(other => {
+                if (e === other || !e.exists || !other.exists) return;
+                if (Math.hypot(e.x - other.x, e.y - other.y) < e.radius * 0.9 && e.radius > other.radius * 1.15) {
+                    e.grow(other.radius);
+                    other.exists = false;
+                    if (other === player) {
+                        alert("Game Over! Mass: " + Math.floor(player.radius));
+                        location.reload();
+                    } else {
+                        setTimeout(() => {
+                            Object.assign(other, { exists: true, x: Math.random() * WORLD.WIDTH, y: Math.random() * WORLD.HEIGHT, radius: Math.random() * 20 + 15, targetAngle: Math.random()*Math.PI*2 });
+                        }, 4000);
+                    }
+                }
+            });
+        });
+
+        orbs.forEach(o => o.draw(cX, cY));
+        bots.forEach(b => b.draw(cX, cY));
+        player.draw(cX, cY);
+        scoreElement.innerText = Math.floor(player.radius);
+        requestAnimationFrame(loop);
+    }
+    loop();
+</script>
+</body>
+</html>
+
