@@ -1,0 +1,47 @@
+<div id="game-container" style="width: 1000px; height: 600px; background: #000; position: relative; display: flex;">
+  <iframe 
+    id="game-iframe" 
+    style="width: 100%; height: 100%; border: none;"
+    allow="fullscreen" 
+    allowfullscreen
+    sandbox="allow-scripts allow-forms allow-popups allow-same-origin allow-pointer-lock"
+  ></iframe>
+</div>
+
+<script>
+  async function loadGame() {
+    const iframe = document.getElementById('game-iframe');
+    const url = "https://cdn.jsdelivr.net/gh/catfoolyou/Five-Nights-At-Winstons/FNAW-Offline.html";
+
+    try {
+      // 1. Fetch the raw HTML from the CDN
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Could not fetch game file");
+      
+      let htmlContent = await response.text();
+
+      // 2. Inject into srcdoc
+      // Note: We wrap it in a basic structure to ensure the browser treats it correctly
+      iframe.srcdoc = htmlContent;
+
+    } catch (error) {
+      console.error("Error loading game:", error);
+      iframe.srcdoc = `<h1 style='color:white;text-align:center;'>Failed to load game file.</h1>`;
+    }
+  }
+
+  // Run the loader
+  loadGame();
+
+  // Fullscreen Trigger Example
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'f' || e.key === 'F') {
+      const container = document.getElementById('game-container');
+      if (!document.fullscreenElement) {
+        container.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  });
+</script>
