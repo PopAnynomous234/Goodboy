@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geometry Vibes - Absolute Fix</title>
+    <style>
+        body { margin: 0; background: black; overflow: hidden; height: 100vh; width: 100vw; }
+        iframe { width: 100%; height: 100%; border: none; }
+    </style>
+</head>
+<body>
+    <iframe id="game-iframe" sandbox="allow-scripts allow-same-origin allow-pointer-lock" 
+    srcdoc='
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        const CDN_BASE = "https://cdn.jsdelivr.net/gh/Stinkalistic/UGS@main/UNITY/geometryvibes/Build/";
+        const OriginalURL = window.URL;
+        window.URL = class extends OriginalURL {
+            constructor(url, base) {
+                if (!base || base.includes("about:srcdoc")) { base = CDN_BASE; }
+                super(url, base);
+            }
+        };
+    </script>
+    <style>
+        body { margin:0; background:black; color:white; font-family:sans-serif; overflow:hidden; }
+        #gameContainer { width:100vw; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        
+        /* The Spaceship Logo Styling */
+        .logo-container { position: relative; width: 150px; height: 150px; margin-bottom: 20px; }
+        .logo-img { width: 100%; height: 100%; filter: drop-shadow(0 0 10px #26ff9a); animation: pulse 2s infinite ease-in-out; }
+        
+        /* Loading Bar Styling */
+        .loader-bar-bg { width: 250px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+        #loader-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #0072ff, #26ff9a); transition: width 0.3s; }
+        #status { margin-top: 15px; font-size: 12px; letter-spacing: 2px; color: #26ff9a; text-transform: uppercase; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 20px #26ff9a); }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div class="logo-container">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTubrPPNGZLsFLCI1Fm9LELcJPbXAUnB0fA1A&s" class="logo-img" alt="Scramjet Logo">
+        </div>
+        <div class="loader-bar-bg"><div id="loader-fill"></div></div>
+        <div id="status">Syncing with Tailscale...</div>
+        <canvas id="unity-canvas" style="width:100%; height:100%; display:none;"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/gh/Stinkalistic/UGS@main/UNITY/geometryvibes/Build/GeometryVibes_GD_V6.loader.js"></script>
+    <script>
+        const canvas = document.querySelector("#unity-canvas");
+        const status = document.querySelector("#status");
+        const fill = document.querySelector("#loader-fill");
+        const container = document.querySelector("#gameContainer");
+
+        const config = {
+            dataUrl: CDN_BASE + "GeometryVibes_GD_V6.data.unityweb",
+            frameworkUrl: CDN_BASE + "GeometryVibes_GD_V6.framework.js.unityweb",
+            codeUrl: CDN_BASE + "GeometryVibes_GD_V6.wasm.unityweb",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "GameVGames",
+            productName: "Geometry Vibes",
+            productVersion: "1.0",
+        };
+
+        createUnityInstance(canvas, config, (p) => {
+            fill.style.width = (p * 100) + "%";
+            status.innerText = "Downloading: " + Math.round(p * 100) + "%";
+        }).then(() => {
+            container.style.display = "none";
+            canvas.style.display = "block";
+        }).catch(err => {
+            status.innerText = "Connection Lost";
+            status.style.color = "red";
+            console.error(err);
+        });
+    </script>
+</body>
+</html>'></iframe>
+</body>
+</html>
