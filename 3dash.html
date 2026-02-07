@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+    <title>3Dash - URL Fixed</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/bubbls/3dash@76613c9a94533ef9e6ba0e266ae18613700e3d02/style.css"/>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; height: 100vh; width: 100vw; }
+        #unity-container { width: 100%; height: 100%; }
+        #unity-progress-bar-full { height: 100%; background: #26ff9a; transition: width 0.3s; }
+        .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #26ff9a; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="dark">
+    <div id="unity-container"><canvas id="unity-canvas" style="width: 100%; height: 100%;"></canvas></div>
+    <div id="loading-cover" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10;">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTp3teRpt92O4IHRfp-NIJiXwex2ocS42NkXw&s" style="width: 200px; margin-bottom: 20px;">
+        <div id="unity-progress-bar-empty" style="width: 250px; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden;">
+            <div id="unity-progress-bar-full" style="width: 0%"></div>
+        </div>
+        <div class="spinner"></div>
+        <div id="status" style="color: #26ff9a; font-family: sans-serif; margin-top: 10px; font-size: 12px; letter-spacing: 1px;">PATCHING URL...</div>
+    </div>
+
+<script>
+    const CDN_BASE = "https://cdn.jsdelivr.net/gh/bubbls/3dash@76613c9a94533ef9e6ba0e266ae18613700e3d02/Build/";
+
+    // 1. DATA STUBS (Must be strings because Unity parses them as JSON)
+    window.environmentData = '{"env":{"lang":"en","tld":"com"},"app":{"id":"0"},"browser":{"lang":"en"},"deviceInfo":{"type":"desktop"}}';
+    window.playerData = '{"name":"Player","photos":{},"ids":{}}';
+    window.cloudSaves = '{}';
+    window.paymentsData = '{"purchases":[]}';
+    window.ysdk = null;
+
+    // 2. FUNCTION STUBS (Bypass internal calls)
+    window.GetPayments = () => Promise.resolve();
+    window.GetLeaderboard = () => Promise.resolve();
+    window.GetPlayer = () => Promise.resolve();
+    window.InitEnvironmentData = () => console.log("Env Initialized");
+    window.Review = () => console.log("Review Skipped");
+    window.ShowAd = () => console.log("Ad Skipped");
+    window.LocalHost = () => true;
+
+    // 3. URL CONSTRUCTOR FIX (Critical for srcdoc/proxies)
+    const OriginalURL = window.URL;
+    window.URL = class extends OriginalURL {
+        constructor(url, base) {
+            if (!base || base.includes("about:srcdoc") || base.includes("blob:") || !base.startsWith('http')) {
+                base = CDN_BASE;
+            }
+            super(url, base);
+        }
+    };
+
+    // 4. YANDEX SDK MOCK (Complete Object)
+    window.YaGames = {
+        init: () => Promise.resolve({
+            adv: { 
+                showFullscreenAdv: (c) => { if(c && c.callbacks) c.callbacks.onClose(); },
+                showRewardedVideo: (c) => { if(c && c.callbacks) c.callbacks.onClose(); },
+                getBannerAdvStatus: () => Promise.resolve({ stickyAdvIsShowing: false })
+            },
+            environment: JSON.parse(window.environmentData),
+            deviceInfo: { type: 'desktop', isMobile: () => false, isDesktop: () => true },
+            getPlayer: () => Promise.reject(),
+            getPayments: () => Promise.reject(),
+            getLeaderboards: () => Promise.reject()
+        })
+    };
+
+    // 5. UNITY CONFIG
+    const config = {
+        dataUrl: CDN_BASE + "GeometryDash.data.unityweb",
+        frameworkUrl: CDN_BASE + "GeometryDash.framework.js.unityweb",
+        codeUrl: CDN_BASE + "GeometryDash.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "GeometryDash3d",
+        productVersion: "0.1"
+    };
+
+    // 6. START THE ENGINE
+    const status = document.getElementById("status");
+    const fill = document.getElementById("unity-progress-bar-full");
+    const loaderScript = document.createElement("script");
+    
+    loaderScript.src = CDN_BASE + "GeometryDash.loader.js";
+    loaderScript.onload = () => {
+        status.innerText = "STARTING ENGINE...";
+        createUnityInstance(document.querySelector("#unity-canvas"), config, (p) => {
+            fill.style.width = (p * 100) + "%";
+            status.innerText = "LOADING: " + Math.round(p * 100) + "%";
+        }).then((instance) => {
+            window.myGameInstance = instance;
+            document.getElementById("loading-cover").style.display = "none";
+        }).catch(err => {
+            // Suppress minor alerts that don't stop the game
+            if (err.toString().includes("GetPayments")) return;
+            status.innerText = "BOOT ERROR";
+            console.error(err);
+        });
+    };
+    document.body.appendChild(loaderScript);
+</script>
+</body>
+</html>
