@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bottle Jump 3D - Patched</title>
+    <base href="https://cdn.jsdelivr.net/gh/bubbls/youtube-playables@main/bottle-jump-3d/">
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <link rel="stylesheet" type="text/css" href="style/index.css"/>
+
+    <style>
+        body { background: #000; margin: 0; overflow: hidden; height: 100vh; width: 100vw; }
+        #game { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+    </style>
+
+    <script>
+        // 1. COMPREHENSIVE MOCK (Satisfies every check in game.js)
+        const mockSub = () => ({ subscribe: () => {} });
+
+        window.ytgame = {
+            game: {
+                gameReady: () => console.log("Mock: Game Ready"),
+                loadFinished: () => console.log("Mock: Load Finished"),
+                firstFrameReady: () => console.log("Mock: First Frame Ready"),
+                firstClickCompleted: () => {},
+                pause: () => {},
+                resume: () => {},
+                loadData: () => Promise.resolve(""), 
+                saveData: (data) => Promise.resolve()
+            },
+            system: {
+                isAudioEnabled: () => true,
+                getAudioState: () => ({ muted: false, volume: 1.0 }),
+                // FIXED: Adding the missing Audio change listener
+                onAudioEnabledChange: mockSub,
+                onAudioStateChange: mockSub,
+                onPause: mockSub,
+                onResume: mockSub
+            },
+            engagement: {
+                sendScore: (s) => console.log("Mock Score:", s)
+            },
+            health: {
+                logError: (e) => console.warn("Game Warning:", e),
+                logCriticalError: (e) => console.error("Game Critical:", e)
+            }
+        };
+
+        window.APIMediator = { init: () => {}, sendEvent: () => {} };
+        window.parent.postMessage = function() { return; };
+    </script>
+
+    <script src="game.js"></script>
+</head>
+
+<body oncontextmenu="return false;">
+    <div id="game"></div>
+
+    <script>
+        window.addEventListener("load", () => {
+            console.log("Launching Bottle Jump...");
+            try {
+                setTimeout(() => {
+                    if (typeof window.runGame === "function") {
+                        window.runGame();
+                    }
+                }, 200);
+            } catch (e) {
+                console.error("Boot Exception:", e);
+            }
+        });
+    </script>
+</body>
+</html>
