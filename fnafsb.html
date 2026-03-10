@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>hehehe</title>
+    <style>
+        /* 1. Remove default browser margins/padding */
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Hide scrollbars if the iframe content has its own */
+            height: 100%;
+            width: 100%;
+        }
+
+        /* 2. Style the iframe to fill the container (which is the body) */
+        .full-page-iframe {
+            border: none; /* Removes the default border around the iframe */
+            width: 100%;
+            height: 100%;
+            display: block; /* Helps remove tiny default spacing issues */
+        }
+    </style>
+</head>
+<body>
+    <iframe class="full-page-iframe" src="https://embeddrr.firebaseapp.com/embed#https://www.gameflare.com/embed/security-breach/" title="Full Page Content">
+    </iframe>
+
+</body>
+</html>
