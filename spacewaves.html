@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <title>Space Waves HD</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@d84a892372bc6e836fafbd784d9c12f83071b9e3/space%20waves/TemplateData/style.css">
+    <style>
+        body { background-color: #000 !important; overflow: hidden; margin: 0; padding: 0; width: 100vw; height: 100vh; }
+        #unity-container { width: 100%; height: 100%; background: #000; position: relative; }
+        #unity-canvas { width: 100% !important; height: 100% !important; image-rendering: crisp-edges; }
+        #loading-cover { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; justify-content: center; align-items: center; z-index: 999; }
+        .spinner { border: 4px solid rgba(38, 255, 154, 0.1); border-left-color: #26ff9a; border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container">
+      <canvas id="unity-canvas"></canvas>
+    </div>
+    <div id="loading-cover"><div class="spinner"></div></div>
+
+    <script src="https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@d84a892372bc6e836fafbd784d9c12f83071b9e3/space%20waves/microsoftDataMigrationDO.js"></script>
+    
+    <script>
+      // 1. THE MISSING FUNCTION FIX
+      function setFocus() {
+        const canvas = document.querySelector("#unity-canvas");
+        if (canvas) {
+            canvas.focus();
+            window.focus();
+        }
+      }
+
+      // 2. MOCK THE AD SDK
+      window.$msstart = {
+        loadAdsAsync: () => Promise.resolve({ instanceId: 'mock' }),
+        showAdsAsync: () => Promise.resolve({ showAdsCompletedAsync: Promise.resolve() })
+      };
+
+      const canvas = document.querySelector("#unity-canvas");
+      const loadingCover = document.querySelector("#loading-cover");
+      const scaleFactor = window.devicePixelRatio || 1;
+
+      const config = {
+        dataUrl: "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@d84a892372bc6e836fafbd784d9c12f83071b9e3/space%20waves/Build/568ea6b3af616bd57f419c508c933303.data.unityweb",
+        frameworkUrl: "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@d84a892372bc6e836fafbd784d9c12f83071b9e3/space%20waves/Build/c699bc4c24abfbdb4c8b3e15b0af7d3f.framework.js.unityweb",
+        codeUrl: "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@d84a892372bc6e836fafbd784d9c12f83071b9e3/space%20waves/Build/7fb5141de5923189bc1dc5f94eb619f2.wasm.unityweb",
+        streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@d84a892372bc6e836fafbd784d9c12f83071b9e3/space%20waves/StreamingAssets",
+        companyName: "do.Games",
+        productName: "Space Waves",
+        productVersion: "1.1.2-ms",
+        matchWebGLToCanvasSize: true, 
+        devicePixelRatio: scaleFactor, 
+      };
+	  
+      var gameInstance;
+      var script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@d84a892372bc6e836fafbd784d9c12f83071b9e3/space%20waves/Build/dae5c7bd2b15915f51ae4e56b8f5367d.loader.js";
+      
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {}).then((unityInstance) => {
+          gameInstance = unityInstance;
+          loadingCover.style.display = "none";
+          setFocus(); // Use it here
+        });
+      };
+      document.body.appendChild(script);
+
+      // AD BYPASSERS (Modified to prevent recursive loops)
+      function showInterstitialAd() { 
+          console.log("Ad Blocked");
+          if(gameInstance) {
+              gameInstance.SendMessage('MSStartSDK', 'OnInterstitialAdClose'); 
+              setFocus(); // Crucial: Fixes the crash
+          }
+      }
+      function showRewardedAd() { 
+          if(gameInstance) {
+              gameInstance.SendMessage('MSStartSDK', 'OnReward'); 
+              setFocus(); 
+          }
+      }
+
+      // Input fixes
+      window.addEventListener("pointerdown", setFocus);
+      window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") window.location.replace("https://classroom.google.com");
+      });
+    </script>
+  </body>
+</html>
