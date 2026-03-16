@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Granny Creepy House - UGS</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/shayderrr/portsv2@main/grannycreepy/style.css" />
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
+        #unity-container { position: absolute; width: 100%; height: 100%; }
+        #unity-canvas { width: 100%; height: 100%; background: #231f20; }
+        #loading-cover { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; justify-content: center; align-items: center; z-index: 999; flex-direction: column; }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top: 4px solid #26ff9a; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #unity-progress-bar-empty { width: 200px; height: 4px; background: #333; border-radius: 2px; display: none; overflow: hidden; }
+        #unity-progress-bar-full { width: 0%; height: 100%; background: #26ff9a; transition: width 0.2s; }
+    </style>
+</head>
+<body class="dark">
+
+    <div id="unity-container">
+        <canvas id="unity-canvas" tabindex="-1"></canvas>
+    </div>
+
+    <div id="loading-cover">
+        <div class="spinner"></div>
+        <div id="unity-progress-bar-empty">
+            <div id="unity-progress-bar-full"></div>
+        </div>
+    </div>
+
+    <script>
+        const ROOT = "https://cdn.jsdelivr.net/gh/shayderrr/portsv2@main/grannycreepy/";
+        const BUILD = ROOT + "Build";
+        
+        const canvas = document.querySelector("#unity-canvas");
+        const loadingCover = document.querySelector("#loading-cover");
+        const progressBarFull = document.querySelector("#unity-progress-bar-full");
+        const progressBarEmpty = document.querySelector("#unity-progress-bar-empty");
+        const spinner = document.querySelector('.spinner');
+
+        // --- THE "IMMUNITY" BYPASS ---
+        // satisfy variables the WASM looks for globally
+        window.playerData = JSON.stringify({ "playerAuth": "resolved", "playerName": "Guest", "playerId": "1337", "playerPhoto": "null" });
+        window.cloudSaves = 'noData';
+        window.environmentData = JSON.stringify({ "language": "en", "deviceType": "desktop", "isMobile": false });
+        
+        // This is the specific variable the console was complaining about
+window.ysdk = {
+    features: {
+        LoadingAPI: {
+            ready: () => console.log("[Bypass] LoadingAPI: Ready"),
+            setProgress: (p) => console.log("[Bypass] LoadingAPI: Progress", p)
+        }
+    },
+    adv: { 
+        showFullscreenAdv: (c) => { if(c && c.callbacks && c.callbacks.onClose) c.callbacks.onClose(true); },
+        getBannerAdvStatus: () => Promise.resolve({ stickyAdvIsShowing: false }),
+        showRewardedVideo: (c) => { if(c && c.callbacks && c.callbacks.onRewarded) c.callbacks.onRewarded(); }
+    },
+    environment: { i18n: { lang: "en", tld: "com" }, payload: "", app: { id: "123" }, browser: { lang: "en" } },
+    deviceInfo: { type: "desktop", isMobile: () => false, isDesktop: () => true, isTablet: () => false, isTV: () => false },
+    getPlayer: () => Promise.resolve({
+        getName: () => "Guest", getPhoto: () => "null", getUniqueID: () => "1337", getMode: () => "lite",
+        getData: () => Promise.resolve({ saves: "noData" }), setData: () => Promise.resolve()
+    }),
+    feedback: { canReview: () => Promise.resolve({ value: false }) },
+    shortcut: { canShowPrompt: () => Promise.resolve({ canShow: false }) },
+    getLeaderboards: () => Promise.resolve({}),
+    getPayments: () => Promise.resolve({})
+};
+        
+        // Link YaGames to our mock ysdk
+        window.YaGames = { init: () => Promise.resolve(window.ysdk) };
+
+        // Functions the engine calls via DllImport
+        const bypassList = [
+            'FullAdShow', 'RewardedShow', 'InitGame', 'InitLeaderboard', 'Review', 
+            'StaticRBTDeactivate', 'PaintRBT', 'GetPayments', 'ConsumePurchase', 
+            'OpenAuthDialog', 'PromptShow', 'SetLeaderboardScores', 'GetLeaderboardScores',
+            'GameReadyAPI'
+        ];
+
+        bypassList.forEach(fn => {
+            window[fn] = window[fn] || function() { console.log(`[Bypass] ${fn} called.`); };
+        });
+
+        // Smart Error Handler
+        window.onerror = function(msg) {
+            if (msg.toLowerCase().includes("is not defined")) {
+                let parts = msg.split(" ");
+                let funcName = parts[0].replace(/'/g, "");
+                // If the first word isn't the function name, try to find the actual name
+                if(funcName === "Uncaught" || funcName === "ReferenceError:") funcName = parts[1];
+                
+                if (funcName && !window[funcName]) {
+                    window[funcName] = function() { return null; };
+                    console.warn(`[Auto-Bypass] Injected: ${funcName}`);
+                }
+                return true; 
+            }
+        };
+
+        // --- LOADER ---
+        const config = {
+            dataUrl: BUILD + "/GrannyHouse.data.unityweb",
+            frameworkUrl: BUILD + "/GrannyHouse.framework.js.unityweb",
+            codeUrl: BUILD + "/GrannyHouse.wasm.unityweb",
+            streamingAssetsUrl: ROOT + "StreamingAssets", 
+            companyName: "DefaultCompany",
+            productName: "GrannyHouse",
+            productVersion: "0.1",
+            devicePixelRatio: 1
+        };
+
+        const script = document.createElement("script");
+        script.src = BUILD + "/GrannyHouse.loader.js";
+        
+        script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+                spinner.style.display = "none";
+                progressBarEmpty.style.display = "block";
+                progressBarFull.style.width = (100 * progress) + "%";
+            }).then((unityInstance) => {
+                loadingCover.style.display = "none";
+                try {
+                    unityInstance.SendMessage('YandexGame', 'SetEnvirData', window.environmentData);
+                    unityInstance.SendMessage('YandexGame', 'SetInitializationSDK', window.playerData);
+                } catch(e) {}
+            }).catch((err) => {
+                console.error("Unity Error:", err);
+            });
+        };
+
+        document.body.appendChild(script);
+        canvas.style.background = "url('" + ROOT + "background.png') center / cover";
+        document.addEventListener('contextmenu', e => e.preventDefault());
+    </script>
+</body>
+</html>
