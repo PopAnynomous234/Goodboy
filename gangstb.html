@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Gangsta Bean - stable_boot</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: black; overflow: hidden; height: 100%; width: 100%; }
+    #flash-container {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: black; overflow: hidden;
+      box-shadow: 0 0 20px rgba(38, 255, 154, 0.2); /* Subtle Neo-Mint glow */
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.1.0-nightly.2024.12.31/ruffle.min.js"></script>
+</head>
+<body>
+  <div id="flash-container"></div>
+
+  <script>
+    // 1. PANIC REDIRECT (Escape)
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") window.top.location.replace("https://classroom.google.com");
+    });
+
+    // 2. SDK SHIELD (Prevents "isMuted" and "ytgame" errors)
+    (function() {
+        const stub = () => true;
+        window.ytgame = {
+            game: { gameReady: stub, firstFrameReady: stub },
+            system: { isMuted: () => false, isAudioEnabled: () => true },
+            engaged: { isEngaged: stub }
+        };
+        window.postMessage = function() { return; };
+    })();
+
+    const container = document.getElementById("flash-container");
+    const SWF_URL = "https://cdn.jsdelivr.net/gh/Stinkalistic/UGS@main/SWFs/gangstabean.swf";
+    
+    function resizeGame() {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const aspectRatio = 550 / 400; // Standard Flash aspect ratio
+      
+      let width = windowWidth;
+      let height = width / aspectRatio;
+      
+      if (height > windowHeight) {
+        height = windowHeight;
+        width = height * aspectRatio;
+      }
+      
+      container.style.width = `${width}px`;
+      container.style.height = `${height}px`;
+    }
+    
+    window.addEventListener("resize", resizeGame);
+
+    window.addEventListener("DOMContentLoaded", () => {
+      resizeGame();
+      
+      // 3. RUFFLE INITIALIZATION
+      const ruffle = window.RufflePlayer?.newest();
+      if (ruffle && container) {
+        const player = ruffle.createPlayer();
+        container.appendChild(player);
+        
+        player.style.width = "100%";
+        player.style.height = "100%";
+
+        // 4. LOAD WITH LITERAL URL & PERMISSIONS
+        player.load({
+            url: SWF_URL,
+            allowScriptAccess: true,
+            quality: "high",
+            scale: "showAll",
+            letterbox: "on"
+        }).then(() => {
+            console.log("Gangsta Bean initialized.");
+        }).catch((e) => {
+            console.error("Ruffle failed:", e);
+        });
+      } else {
+        container.innerHTML = "<div style='color:#26ff9a; font-family:monospace; text-align:center; padding-top:20%;'>ENGINE_INIT_FAILURE</div>";
+      }
+    });
+  </script>
+</body>
+</html>
