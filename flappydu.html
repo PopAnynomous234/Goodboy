@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>DungeonRaid</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Stinkalistic/UGS@main/UNITY/dungeonraid/TemplateData/style.css">
+    
+    <style>
+        body, html { background: #000; margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; }
+        #unity-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+        canvas#unity-canvas { width: 100% !important; height: 100% !important; }
+        #custom-loader { position: absolute; color: #26ff9a; font-family: monospace; z-index: 10; pointer-events: none; }
+    </style>
+
+    <script>
+        // 1. PANIC KEY (Escape to Classroom)
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") window.top.location.replace("https://classroom.google.com");
+        });
+
+        // 2. IMMORTAL SDK SHIELD (Bypass YT/School Errors)
+        (function() {
+            const stub = () => true;
+            window.ytgame = new Proxy({}, {
+                get: (t, p) => (p === 'isMuted' ? () => false : (p === 'isAudioEnabled' ? () => true : stub))
+            });
+            window.postMessage = function() { return; };
+            window.onerror = function() { return true; };
+        })();
+    </script>
+</head>
+<body>
+    <div id="unity-container">
+        <canvas id="unity-canvas" tabindex="-1"></canvas>
+        <div id="custom-loader">LOADING_SYSTEM...</div>
+        
+        <div id="unity-loading-bar" style="display:none;">
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
+        </div>
+        <div id="unity-warning"></div>
+    </div>
+
+    <script>
+        const canvas = document.querySelector("#unity-canvas");
+        const loaderText = document.querySelector("#custom-loader");
+        const progressBarFull = document.querySelector("#unity-progress-bar-full");
+
+        // 3. LITERAL URL MAPPING
+        const BASE = "https://cdn.jsdelivr.net/gh/Stinkalistic/UGS@main/UNITY/dungeonraid/";
+        const BUILD = BASE + "Build/";
+
+        var config = {
+            arguments: [],
+            dataUrl: BUILD + "DungeonRaid.data.unityweb",
+            frameworkUrl: BUILD + "DungeonRaid.framework.js.unityweb",
+            codeUrl: BUILD + "DungeonRaid.wasm.unityweb",
+            streamingAssetsUrl: BASE + "StreamingAssets",
+            companyName: "FourCats",
+            productName: "DungeonRaid",
+            productVersion: "1.0.0.80",
+            showBanner: function(msg) { console.warn("Unity:", msg); },
+        };
+
+        // 4. SEQUENTIAL LOADER INJECTION
+        var script = document.createElement("script");
+        script.src = BUILD + "DungeonRaid.loader.js";
+        script.crossOrigin = "anonymous";
+        
+        script.onload = () => {
+            loaderText.innerText = "INITIALIZING_ENGINE...";
+            createUnityInstance(canvas, config, (progress) => {
+                loaderText.innerText = "SYNCING: " + Math.round(progress * 100) + "%";
+            }).then((unityInstance) => {
+                loaderText.style.display = "none";
+            }).catch((message) => {
+                console.error("Boot Error:", message);
+                loaderText.innerText = "BOOT_FAILED_CHECK_CONSOLE";
+            });
+        };
+
+        document.body.appendChild(script);
+    </script>
+</body>
+</html>
