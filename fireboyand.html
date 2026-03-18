@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Fireboy & Watergirl 1 - Flash</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            background: black;
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        ruffle-player {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <script>
+        window.RufflePlayer = window.RufflePlayer || {};
+        window.addEventListener("load", (event) => {
+            const ruffle = window.RufflePlayer.newest();
+            const player = ruffle.createPlayer();
+            const container = document.getElementById("game-container");
+            
+            container.appendChild(player);
+
+            // LITERAL URL for the SWF file
+            const swfUrl = "https://cdn.jsdelivr.net/gh/StarRepo444/ClassroomPlayV2@c28ef0cfdccbbfc61a42d9954f14af3115c7398a/games/flash/swf/fbwg.swf";
+
+            player.load({
+                url: swfUrl,
+                backgroundColor: "#26ff9a", // Your signature neon-mint
+                allowScriptAccess: true,
+                quality: "high",
+                letterbox: "on"
+            }).then(() => {
+                console.log("Forest Temple Initialized");
+            }).catch((e) => {
+                container.innerHTML = "<p style='color: #26ff9a; font-family: monospace;'>SYSTEM ERROR: SWF_BLOCKED</p>";
+            });
+        });
+    </script>
+</body>
+</html>
