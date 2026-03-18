@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Shooter 2D Online</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dayyiq/fdfd@main/style.css">
+    <style>
+      body, html { background: #000; margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+      #unity-container { position: absolute; width: 100%; height: 100%; top: 0; left: 0; }
+      #unity-canvas { width: 100%; height: 100%; background: #000; }
+      #unity-loading-bar { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container">
+      <canvas id="unity-canvas"></canvas>
+    </div>
+
+    <div id="unity-loading-bar">
+      <div id="unity-logo"></div>
+      <div id="unity-progress-bar-empty">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+    </div>
+
+    <script>
+      // 1. RE-ENABLE SERVICE WORKER (LITERAL)
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("https://cdn.jsdelivr.net/gh/dayyiq/fdfd@main/ServiceWorker.js")
+          .then(() => console.log("Network Proxy Active"))
+          .catch(() => console.log("Service Worker Blocked - Proceeding without Proxy"));
+      }
+
+      // 2. GHOST FUNCTIONS & NETWORK STABILIZERS
+      window.ShowFixedRK = () => {};
+      window.HideFixedRK = () => {};
+      window.showFullscrenAd = () => {};
+      window.yaContextCb = window.yaContextCb || [];
+      window.ym = () => {};
+      
+      // 3. UNITY CONFIG
+      const canvas = document.querySelector("#unity-canvas");
+      const loadingBar = document.querySelector("#unity-loading-bar");
+      const progressBarFull = document.querySelector("#unity-progress-bar-full");
+
+      const config = {
+        dataUrl: "https://cdn.jsdelivr.net/gh/dayyiq/fdfd@main/Build/dist.data.unityweb",
+        frameworkUrl: "https://cdn.jsdelivr.net/gh/dayyiq/fdfd@main/Build/dist.framework.js.unityweb",
+        codeUrl: "https://cdn.jsdelivr.net/gh/dayyiq/fdfd@main/Build/dist.wasm.unityweb",
+        streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/dayyiq/fdfd@main/StreamingAssets",
+        companyName: "Games404",
+        productName: "Shooter2DOnline",
+        productVersion: "0.0.3",
+      };
+
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/gh/dayyiq/fdfd@main/Build/dist.loader.js";
+      script.crossOrigin = "anonymous";
+      
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          if (progressBarFull) progressBarFull.style.width = (100 * progress) + "%";
+        }).then((unityInstance) => {
+          window.Unity = unityInstance;
+          if (loadingBar) loadingBar.style.display = "none";
+          
+          // Manually trigger a resize to "wake up" the rendering loop
+          window.dispatchEvent(new Event('resize'));
+        });
+      };
+      
+      document.body.appendChild(script);
+
+      // 4. PREVENT "STUCK" INPUTS
+      window.addEventListener("blur", () => {
+        if(window.Unity) try { window.Unity.SendMessage('AudioGame', 'AudioBackgroundToggle', 'false'); } catch(e){}
+      });
+      window.addEventListener("focus", () => {
+        if(window.Unity) try { window.Unity.SendMessage('AudioGame', 'AudioBackgroundToggle', 'true'); } catch(e){}
+      });
+    </script>
+  </body>
+</html>
