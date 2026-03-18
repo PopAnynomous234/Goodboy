@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <title>Bad Parenting 1 - Literal jsDelivr</title>
+    <script>
+        // URL Constructor Fix: Essential for about:srcdoc environments
+        (function() {
+            const OldURL = window.URL;
+            window.URL = function(url, base) {
+                try {
+                    return new OldURL(url, base || "https://cdn.jsdelivr.net");
+                } catch (e) {
+                    return new OldURL("https://cdn.jsdelivr.net");
+                }
+            };
+            window.URL.prototype = OldURL.prototype;
+            window.URL.createObjectURL = OldURL.createObjectURL;
+            window.URL.revokeObjectURL = OldURL.revokeObjectURL;
+        })();
+    </script>
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #unity-container { position: fixed; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        #unity-canvas { width: 100%; height: 100%; background: #000; }
+        #unity-loading-bar { position: absolute; bottom: 20px; width: 50%; height: 10px; background: rgba(255,255,255,0.2); border-radius: 5px; overflow: hidden; }
+        #unity-progress-bar-full { height: 100%; width: 0%; background: #26ff9a; transition: width 0.2s ease; box-shadow: 0 0 10px #26ff9a; }
+    </style>
+</head>
+<body>
+    <div id="unity-container">
+        <canvas id="unity-canvas" tabindex="-1"></canvas>
+        <div id="unity-loading-bar"><div id="unity-progress-bar-full"></div></div>
+    </div>
+
+    <script>
+        const canvas = document.querySelector("#unity-canvas");
+        const progressBarFull = document.querySelector("#unity-progress-bar-full");
+
+        // LITERAL JSDELIVR PATHS
+        const BASE = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/bad-parenting/Build/";
+        const LOADER = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/bad-parenting/Build/Build.loader.js";
+
+        // This function fetches the literal parts from jsDelivr and merges them
+        async function loadSplitData(literalUrl, parts) {
+            const chunks = [];
+            for (let i = 1; i <= parts; i++) {
+                const partUrl = `${literalUrl}.part${i}`;
+                const response = await fetch(partUrl);
+                if (!response.ok) throw new Error(`403/404 on ${partUrl}`);
+                const chunk = await response.arrayBuffer();
+                chunks.push(chunk);
+                // Update bar during the fetch
+                progressBarFull.style.width = (i / parts) * 20 + "%";
+            }
+            return URL.createObjectURL(new Blob(chunks));
+        }
+
+        const config = {
+            dataUrl: "", // Filled after merge
+            frameworkUrl: "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/bad-parenting/Build/Build.framework.js",
+            codeUrl: "", // Filled after merge
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "twoootwo",
+            productName: "Bad Parenting 1",
+            productVersion: "1.0",
+        };
+
+        // START BOOT SEQUENCE
+        Promise.all([
+            loadSplitData(BASE + "Build.wasm", 2),
+            loadSplitData(BASE + "Build.data", 3)
+        ])
+        .then(([wasmBlob, dataBlob]) => {
+            config.codeUrl = wasmBlob;
+            config.dataUrl = dataBlob;
+
+            const script = document.createElement("script");
+            script.src = LOADER;
+            script.crossOrigin = "anonymous";
+            script.onload = () => {
+                createUnityInstance(canvas, config, (progress) => {
+                    progressBarFull.style.width = 20 + (80 * progress) + "%";
+                }).then((instance) => {
+                    document.querySelector("#unity-loading-bar").style.display = "none";
+                }).catch(err => alert("Unity Crash: " + err));
+            };
+            document.body.appendChild(script);
+        })
+        .catch(err => alert("jsDelivr Error: " + err.message));
+
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") window.top.location.replace("https://classroom.google.com");
+        });
+    </script>
+</body>
+</html>
