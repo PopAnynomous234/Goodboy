@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>google.com</title>
+  <link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/TemplateData/favicon.ico">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/TemplateData/style.css">
+  <meta name="robots" content="noindex,nofollow">
+  <script>
+    // PRE-BOOT FIXES
+    window.indexedDB = null; // Prevent school filter/sandbox database crashes
+    
+    // Console Muzzle: Stops "Eror In Check" or similar spam from laggy Wasm loops
+    (function() {
+      const ignore = ["Eror", "GameObject", "signature mismatch"];
+      const mute = (orig) => function(...args) {
+        if (args[0] && typeof args[0] === 'string' && ignore.some(t => args[0].includes(t))) return;
+        return orig.apply(console, args);
+      };
+      console.log = mute(console.log);
+      console.warn = mute(console.warn);
+      console.error = mute(console.error);
+    })();
+  </script>
+</head>
+<body class="dark">
+  <div id="unity-container" class="unity-desktop">
+    <canvas id="unity-canvas"></canvas>
+  </div>
+
+  <div id="unity-fullscreen-button" style="display: none;"></div>
+
+  <script>
+    const hideFullScreenButton = "1";
+    // LITERAL URL BASE
+    const buildUrl = "https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/Build";
+    const loaderUrl = "https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/Build/FNaF_Shooter_GD.loader.js";
+
+    const config = {
+      dataUrl: "",
+      frameworkUrl: "https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/Build/FNaF_Shooter_GD.framework.js.unityweb",
+      codeUrl: "https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/Build/FNaF_Shooter_GD.wasm.unityweb",
+      streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/StreamingAssets",
+      companyName: "GoGoMan",
+      productName: "FNaF Shooter",
+      productVersion: "1.0.0"
+    };
+
+    const container = document.querySelector("#unity-container");
+    const canvas = document.querySelector("#unity-canvas");
+    const fullscreenButton = document.querySelector("#unity-fullscreen-button");
+
+    const canFullscreen = (() => {
+      return ["exitFullscreen", "webkitExitFullscreen", "webkitCancelFullScreen", "mozCancelFullScreen", "msExitFullscreen"].some(key => key in document);
+    })();
+
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      container.className = "unity-mobile";
+      config.devicePixelRatio = 1;
+    }
+
+    // Set background splash image
+    canvas.style.background = "url('https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/Build/FNaF_Shooter_GD.jpg') center / cover";
+
+    async function loadDataParts() {
+      try {
+        // LITERAL PART URLS
+        const urls = [
+          "https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/Build/FNaF_Shooter_GD.data.unityweb.part0",
+          "https://cdn.jsdelivr.net/gh/googleuserclassroomcontent/wassat@main/Build/FNaF_Shooter_GD.data.unityweb.part1"
+        ];
+
+        console.log("Stitching data segments...");
+        const responses = await Promise.all(
+          urls.map(url => fetch(url).then(res => {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.arrayBuffer();
+          }))
+        );
+
+        const totalLength = responses.reduce((sum, buffer) => sum + buffer.byteLength, 0);
+        const combined = new Uint8Array(totalLength);
+
+        let offset = 0;
+        for (const buffer of responses) {
+          combined.set(new Uint8Array(buffer), offset);
+          offset += buffer.byteLength;
+        }
+
+        const blob = new Blob([combined], { type: "application/octet-stream" });
+        config.dataUrl = URL.createObjectURL(blob);
+
+        loadUnity();
+      } catch (err) {
+        console.error("Payload assembly failed:", err);
+      }
+    }
+
+    function loadUnity() {
+      const script = document.createElement("script");
+      script.src = loaderUrl;
+      script.crossOrigin = "anonymous";
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+           // Optional: You can add a loading bar update here
+        }).then(unityInstance => {
+          if (canFullscreen && !parseInt(hideFullScreenButton)) {
+            fullscreenButton.style.display = "";
+            fullscreenButton.onclick = () => unityInstance.SetFullscreen(1);
+          }
+        }).catch(message => {
+          console.error("Unity Instance Error:", message);
+        });
+      };
+      document.body.appendChild(script);
+    }
+
+    loadDataParts();
+  </script>
+</body>
+</html>
