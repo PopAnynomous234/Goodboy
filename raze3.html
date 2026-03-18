@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Raze 3 - Fixed</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+    }
+    #flash-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .black-box { position: fixed; background: black; z-index: 10; }
+    #box-top { top: 0; left: 0; width: 100%; }
+    #box-bottom { bottom: 0; left: 0; width: 100%; }
+    #box-left { top: 0; left: 0; height: 100%; }
+    #box-right { top: 0; right: 0; height: 100%; }
+  </style>
+  <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+</head>
+<body>
+  <div id="flash-container"></div>
+  <div class="black-box" id="box-top"></div>
+  <div class="black-box" id="box-bottom"></div>
+  <div class="black-box" id="box-left"></div>
+  <div class="black-box" id="box-right"></div>
+
+  <script>
+    const container = document.getElementById("flash-container");
+    // LITERAL URL for Raze 3
+    const swfUrl = "https://cdn.jsdelivr.net/gh/Stinkalistic/UGS@main/SWFs/raze3.swf";
+
+    function resizeGame() {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const aspectRatio = 800 / 600; // Standard ratio for Raze series
+      
+      let width = windowWidth;
+      let height = Math.floor(width / aspectRatio);
+      
+      if (height > windowHeight) {
+        height = windowHeight;
+        width = Math.floor(height * aspectRatio);
+      }
+      
+      container.style.width = `${width}px`;
+      container.style.height = `${height}px`;
+      
+      const topMargin = Math.max(0, (windowHeight - height) / 2);
+      const leftMargin = Math.max(0, (windowWidth - width) / 2);
+      
+      document.getElementById("box-top").style.height = `${topMargin}px`;
+      document.getElementById("box-bottom").style.height = `${topMargin}px`;
+      document.getElementById("box-left").style.width = `${leftMargin}px`;
+      document.getElementById("box-right").style.width = `${leftMargin}px`;
+    }
+
+    window.addEventListener("resize", resizeGame);
+
+    window.addEventListener("load", () => {
+      resizeGame();
+      
+      if (window.RufflePlayer) {
+        const ruffle = window.RufflePlayer.newest();
+        const player = ruffle.createPlayer();
+        container.appendChild(player);
+
+        player.load({
+          url: swfUrl,
+          backgroundColor: "#26ff9a", // Your Neon Mint
+          allowScriptAccess: true,
+          quality: "high"
+        }).then(() => {
+          console.log("Raze 3 Initialized");
+        }).catch((e) => {
+          container.textContent = "Flash file blocked by school filter.";
+        });
+
+        player.style.width = "100%";
+        player.style.height = "100%";
+      } else {
+        container.textContent = "Ruffle CDN is blocked.";
+      }
+    });
+  </script>
+</body>
+</html>
