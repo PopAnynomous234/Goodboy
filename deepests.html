@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Deepest Sword | Absolute Literal</title>
+    <style>
+        html, body {
+            background: #000;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #gameContainer { width: 100%; height: 100%; position: relative; }
+        #unity-canvas { width: 100%; height: 100%; background: #000; }
+        #loading-text { 
+            position: absolute; 
+            color: #26ff9a; 
+            font-family: monospace; 
+            text-shadow: 0 0 8px #26ff9a; 
+            z-index: 10; 
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="loading-text">LITERAL BOOT...</div>
+        <canvas id="unity-canvas"></canvas>
+    </div>
+
+    <script>
+        // EVERY URL STARTS WITH THE FULL ABSOLUTE PATH
+        const config = {
+            dataUrl: "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@8b3b8522e7e0c3f94588a5d2364f49e7829f993e/deepest%20sword/Build/WebBuilds.data",
+            frameworkUrl: "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@8b3b8522e7e0c3f94588a5d2364f49e7829f993e/deepest%20sword/Build/WebBuilds.framework.js",
+            codeUrl: "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@8b3b8522e7e0c3f94588a5d2364f49e7829f993e/deepest%20sword/Build/WebBuilds.wasm",
+            streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@8b3b8522e7e0c3f94588a5d2364f49e7829f993e/deepest%20sword/StreamingAssets",
+            companyName: "Cosmic Adventure Squad",
+            productName: "Deepest Sword",
+            productVersion: "0.1.5c",
+        };
+
+        const canvas = document.querySelector("#unity-canvas");
+        const loadingText = document.querySelector("#loading-text");
+
+        // LOAD THE LOADER SCRIPT WITH ABSOLUTE URL
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@8b3b8522e7e0c3f94588a5d2364f49e7829f993e/deepest%20sword/Build/WebBuilds.loader.js";
+        
+        script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+                loadingText.textContent = "LOADING: " + Math.round(progress * 100) + "%";
+            }).then((instance) => {
+                loadingText.remove();
+                
+                // Aspect Ratio Logic
+                function onResize() {
+                    const w = window.innerWidth;
+                    const h = window.innerHeight;
+                    const r = 540 / 960;
+                    let finalW = w;
+                    let finalH = h;
+
+                    if (w * r > h) {
+                        finalW = Math.ceil(h / r);
+                        finalH = h;
+                    } else {
+                        finalH = Math.floor(w * r);
+                    }
+
+                    canvas.style.width = finalW + "px";
+                    canvas.style.height = finalH + "px";
+                }
+
+                window.addEventListener('resize', onResize);
+                onResize();
+            }).catch((err) => {
+                loadingText.textContent = "BOOT ERROR";
+                console.error(err);
+            });
+        };
+
+        // Panic Key (\)
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "\\") window.location.replace("https://study.thenametycoon.com");
+        });
+
+        document.body.appendChild(script);
+    </script>
+</body>
+</html>
