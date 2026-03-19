@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Time Shooter | Literal</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #unity-container { width: 100vw; height: 100vh; position: relative; display: flex; justify-content: center; align-items: center; }
+        #unity-canvas { width: 100%; height: 100%; background: #000; }
+        
+        /* Neon Mint Loading UI */
+        #loading-cover { position: absolute; z-index: 10; text-align: center; }
+        .spinner {
+            border: 4px solid rgba(38, 255, 154, 0.1);
+            border-left-color: #26ff9a;
+            width: 40px; height: 40px; border-radius: 50%;
+            animation: spin 1s linear infinite; margin: 10px auto;
+            box-shadow: 0 0 10px #26ff9a;
+        }
+        #progress-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.1); margin-top: 10px; }
+        #progress-fill { width: 0%; height: 100%; background: #26ff9a; box-shadow: 0 0 10px #26ff9a; transition: width 0.2s; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+
+<body>
+    <div id="unity-container">
+        <div id="loading-cover">
+            <div class="spinner" id="spinner"></div>
+            <div id="progress-bar"><div id="progress-fill"></div></div>
+            <div id="status" style="color:#26ff9a; font-family:monospace; margin-top:10px;">LITERAL BOOT...</div>
+        </div>
+        <canvas id="unity-canvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.querySelector("#unity-canvas");
+        const progressFill = document.querySelector("#progress-fill");
+        const status = document.querySelector("#status");
+        const spinner = document.querySelector("#spinner");
+
+        // 1. ABSOLUTE LITERAL CONFIG
+        const config = {
+            dataUrl: "https://cdn.jsdelivr.net/gh/gn-math/assets@main/199/Build/TimeGD.data.unityweb",
+            frameworkUrl: "https://cdn.jsdelivr.net/gh/gn-math/assets@main/199/Build/TimeGD.framework.js.unityweb",
+            codeUrl: "https://cdn.jsdelivr.net/gh/gn-math/assets@main/199/Build/TimeGD.wasm.unityweb",
+            streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/gn-math/assets@main/199/StreamingAssets",
+            companyName: "g80g",
+            productName: "Time Shooter",
+            productVersion: "1.0",
+        };
+
+        async function startEngine() {
+            try {
+                // 2. FETCH LOADER AND BLOB IT (Constructor Bypass)
+                const response = await fetch("https://cdn.jsdelivr.net/gh/gn-math/assets@main/199/Build/TimeGD.loader.js");
+                const scriptText = await response.text();
+                const blob = new Blob([scriptText], { type: 'application/javascript' });
+                const blobUrl = URL.createObjectURL(blob);
+
+                const script = document.createElement("script");
+                script.src = blobUrl;
+                script.onload = () => {
+                    createUnityInstance(canvas, config, (progress) => {
+                        spinner.style.display = "none";
+                        progressFill.style.width = (progress * 100) + "%";
+                        status.textContent = "LOADING: " + Math.round(progress * 100) + "%";
+                    }).then((instance) => {
+                        document.querySelector("#loading-cover").remove();
+                        URL.revokeObjectURL(blobUrl);
+                    }).catch(err => {
+                        status.textContent = "BOOT ERROR";
+                        console.error(err);
+                    });
+                };
+                document.body.appendChild(script);
+            } catch (e) {
+                status.textContent = "CDN BLOCK";
+                status.style.color = "red";
+            }
+        }
+
+        // Panic Key (\)
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "\\") window.location.replace("https://study.thenametycoon.com");
+        });
+
+        startEngine();
+    </script>
+</body>
+</html>
