@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>ARSONATE | Literal Edition</title>
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    #unity-container { width: 100vw; height: 100vh; position: relative; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+    #unity-canvas { width: 100vw; height: 99vh; background: #000; border: 1px solid #26ff9a; box-shadow: 0 0 15px rgba(38, 255, 154, 0.2); }
+    
+    #loading-text { 
+        color: #26ff9a; font-family: monospace; font-size: 1.2rem; 
+        text-shadow: 0 0 10px #26ff9a; margin-bottom: 10px; 
+    }
+    #progress-container { width: 300px; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; }
+    #progress-fill { width: 0%; height: 100%; background: #26ff9a; box-shadow: 0 0 10px #26ff9a; transition: width 0.2s; }
+  </style>
+</head>
+
+<body>
+  <div id="unity-container">
+    <div id="loading-text">INITIALIZING ARSONATE...</div>
+    <div id="progress-container"><div id="progress-fill"></div></div>
+    <canvas id="unity-canvas"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.querySelector("#unity-canvas");
+    const progressFill = document.querySelector("#progress-fill");
+    const loadingText = document.querySelector("#loading-text");
+
+    // 1. ABSOLUTE LITERAL CONFIG (No variables, no base tag)
+    const config = {
+      dataUrl: "https://raw.githubusercontent.com/Stinkalistic/junk/refs/heads/main/arsonate/Build/ARSONATE%20-%20WEBGL_DEMO%20-%20CURRENT_RELEASE.data.unityweb",
+      frameworkUrl: "https://cdn.jsdelivr.net/gh/Stinkalistic/junk@main/arsonate/Build/ARSONATE%20-%20WEBGL_DEMO%20-%20CURRENT_RELEASE.framework.js.unityweb",
+      codeUrl: "https://raw.githubusercontent.com/Stinkalistic/junk/refs/heads/main/arsonate/Build/ARSONATE%20-%20WEBGL_DEMO%20-%20CURRENT_RELEASE.wasm.unityweb",
+      streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/Stinkalistic/junk@main/arsonate/StreamingAssets",
+      companyName: "Nash",
+      productName: "ARSONATE",
+      productVersion: "0.1",
+    };
+
+    async function startArsonate() {
+      try {
+        // 2. FETCH LOADER AND CONVERT TO BLOB (Fixes 'Invalid URL' crash)
+        const loaderResponse = await fetch("https://cdn.jsdelivr.net/gh/Stinkalistic/junk@main/arsonate/Build/ARSONATE%20-%20WEBGL_DEMO%20-%20CURRENT_RELEASE.loader.js");
+        const loaderText = await loaderResponse.text();
+        const loaderBlob = new Blob([loaderText], { type: 'application/javascript' });
+        const loaderUrl = URL.createObjectURL(loaderBlob);
+
+        const script = document.createElement("script");
+        script.src = loaderUrl;
+        
+        script.onload = () => {
+          createUnityInstance(canvas, config, (progress) => {
+            progressFill.style.width = (100 * progress) + "%";
+            loadingText.textContent = "LOADING: " + Math.round(progress * 100) + "%";
+          }).then((instance) => {
+            loadingText.style.display = "none";
+            document.querySelector("#progress-container").style.display = "none";
+            URL.revokeObjectURL(loaderUrl);
+          }).catch((err) => {
+            console.error(err);
+            loadingText.textContent = "BOOT FAILED";
+            loadingText.style.color = "#ff4444";
+          });
+        };
+        document.body.appendChild(script);
+
+      } catch (e) {
+        console.error("Critical Failure:", e);
+        loadingText.textContent = "URL CONSTRUCTOR ERROR";
+      }
+    }
+
+    // Panic Key (\) to redirect to school dashboard
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "\\") window.location.replace("https://study.thenametycoon.com");
+    });
+
+    startArsonate();
+  </script>
+</body>
+</html>
