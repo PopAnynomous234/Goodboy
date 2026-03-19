@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Time Shooter 3 SWAT | Literal</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #unity-container { width: 100vw; height: 100vh; position: relative; display: flex; justify-content: center; align-items: center; }
+        #unity-canvas { width: 100%; height: 100%; background: #000; }
+        
+        /* Cyberpunk Mint UI (#26ff9a) */
+        #loading-cover { position: absolute; z-index: 10; text-align: center; }
+        #progress-bar { width: 250px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 15px; }
+        #progress-fill { width: 0%; height: 100%; background: #26ff9a; box-shadow: 0 0 12px #26ff9a; transition: width 0.2s; }
+        #status-text { color: #26ff9a; font-family: monospace; text-shadow: 0 0 8px #26ff9a; margin-top: 10px; font-size: 14px; }
+    </style>
+</head>
+
+<body>
+    <div id="unity-container">
+        <div id="loading-cover">
+            <div id="progress-bar"><div id="progress-fill"></div></div>
+            <div id="status-text">LITERAL BOOT...</div>
+        </div>
+        <canvas id="unity-canvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.querySelector("#unity-canvas");
+        const progressFill = document.querySelector("#progress-fill");
+        const statusText = document.querySelector("#status-text");
+
+        // 1. ABSOLUTE LITERAL CONFIG
+        const config = {
+            dataUrl: "https://cdn.jsdelivr.net/gh/mistirk/google@eebffdf79a14f6e01e153d5cd4bed23c432874fb/version/time-s3/ts3.data",
+            frameworkUrl: "https://cdn.jsdelivr.net/gh/mistirk/google@eebffdf79a14f6e01e153d5cd4bed23c432874fb/version/time-s3/ts3.framework.js",
+            codeUrl: "https://cdn.jsdelivr.net/gh/mistirk/google@eebffdf79a14f6e01e153d5cd4bed23c432874fb/version/time-s3/ts3.wasm",
+            streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/mistirk/google@eebffdf79a14f6e01e153d5cd4bed23c432874fb/version/time-s3/StreamingAssets",
+            companyName: "GoGoMan",
+            productName: "Time Shooter SWAT",
+            productVersion: "0.03",
+        };
+
+        async function startTS3() {
+            try {
+                // 2. FETCH LOADER AND BLOB IT (Bypasses URL constructor crash)
+                const loaderPath = "https://cdn.jsdelivr.net/gh/mistirk/google@eebffdf79a14f6e01e153d5cd4bed23c432874fb/version/time-s3/ts3.loader.js";
+                const response = await fetch(loaderPath);
+                const scriptText = await response.text();
+                const blob = new Blob([scriptText], { type: 'application/javascript' });
+                const blobUrl = URL.createObjectURL(blob);
+
+                const script = document.createElement("script");
+                script.src = blobUrl;
+                script.onload = () => {
+                    createUnityInstance(canvas, config, (progress) => {
+                        progressFill.style.width = (progress * 100) + "%";
+                        statusText.textContent = "LOADING SWAT: " + Math.round(progress * 100) + "%";
+                    }).then((instance) => {
+                        document.querySelector("#loading-cover").style.display = "none";
+                        URL.revokeObjectURL(blobUrl); // Memory cleanup
+                    }).catch(err => {
+                        statusText.textContent = "BOOT ERROR";
+                        console.error(err);
+                    });
+                };
+                document.body.appendChild(script);
+            } catch (e) {
+                statusText.textContent = "CDN BLOCK / FETCH FAILED";
+                statusText.style.color = "#ff4444";
+            }
+        }
+
+        startTS3();
+    </script>
+</body>
+</html>
