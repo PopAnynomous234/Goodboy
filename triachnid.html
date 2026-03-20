@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Triachnid | UGS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AndreajnRcm4/b398dl2h74v@9a23fbb2373d743a564873251cbb57736ebc1f73/style.css" type="text/css" />
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <div id="ruffle"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/u-cvlassrom-y/google@main/ruffle.js"></script>
+
+<script>
+    window.RufflePlayer = window.RufflePlayer || {};
+    window.addEventListener("load", (event) => {
+        const ruffle = window.RufflePlayer.newest();
+        const player = ruffle.createPlayer();
+        const container = document.getElementById("ruffle");
+        
+        container.appendChild(player);
+        
+        // Load the SWF directly into the Ruffle player
+        player.load("https://cdn.jsdelivr.net/gh/Stinkalistic/UGS@main/SWFs/triachnid.swf");
+        
+        player.style.width = "100vw";
+        player.style.height = "100vh";
+    });
+
+    // Panic Key (\)
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "\\") window.location.replace("https://study.thenametycoon.com");
+    });
+</script>
+
+</body>
+</html>
