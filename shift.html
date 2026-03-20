@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Shift | Fixed Loader</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: black; overflow: hidden; height: 100%; width: 100%; }
+    #flash-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #status {
+      color: #26ff9a;
+      font-family: monospace;
+      text-transform: uppercase;
+      z-index: 20;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.2.0-nightly.2025.10.2/ruffle.min.js"></script>
+</head>
+<body>
+  <div id="flash-container">
+    <div id="status">Syncing SWF...</div>
+  </div>
+
+  <script>
+    const container = document.getElementById("flash-container");
+    const status = document.getElementById("status");
+    const swfUrl = "https://cdn.jsdelivr.net/gh/Stinkalistic/UGS@main/SWFs/422855_Shiftfla5.swf";
+
+    function resizeGame() {
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const aspectRatio = 5.5 / 3; // Your custom ratio
+      
+      let width = windowWidth;
+      let height = Math.floor(width / aspectRatio);
+      
+      if (height > windowHeight) {
+        height = windowHeight;
+        width = Math.floor(height * aspectRatio);
+      }
+      
+      container.style.width = `${width}px`;
+      container.style.height = `${height}px`;
+    }
+
+    async function initRuffle() {
+      try {
+        // Fetch the SWF as a Blob to prevent 404/Pathing errors in srcdoc
+        const response = await fetch(swfUrl);
+        if (!response.ok) throw new Error("File Not Found");
+        const swfData = await response.arrayBuffer();
+
+        const ruffle = window.RufflePlayer?.newest();
+        if (ruffle && container) {
+          const player = ruffle.createPlayer();
+          container.innerHTML = ""; // Clear status text
+          container.appendChild(player);
+          
+          player.style.width = "100%";
+          player.style.height = "100%";
+          
+          // Load the raw byte data
+          player.load({ data: swfData });
+        }
+      } catch (e) {
+        status.innerText = "ERROR: 404 OR CORB BLOCK";
+        status.style.color = "#ff4d4d";
+      }
+    }
+
+    window.addEventListener("resize", resizeGame);
+    window.addEventListener("DOMContentLoaded", () => {
+      resizeGame();
+      initRuffle();
+    });
+
+    // Panic Key (\)
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "\\") window.location.replace("https://study.thenametycoon.com");
+    });
+  </script>
+</body>
+</html>
