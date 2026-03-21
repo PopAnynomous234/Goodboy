@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Learn to Fly 3 | Fixed Loader</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AndreajnRcm4/b398dl2h74v@9a23fbb2373d743a564873251cbb57736ebc1f73/style.css" type="text/css" />
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #ruffle-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        #status { color: #26ff9a; font-family: monospace; text-transform: uppercase; letter-spacing: 2px; z-index: 10; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div id="ruffle-container">
+    <div id="status">fucking up</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/u-cvlassrom-y/google@main/ruffle.js"></script>
+
+<script>
+    const status = document.getElementById("status");
+    const swfUrl = "https://cdn.jsdelivr.net/gh/Magixxz/embeds@a9ae99acf7e9feb974b973c9331282ae025754ce/Learn-To-Fly-3.swf";
+
+    async function loadFlash() {
+        try {
+            status.innerText = "fucking up";
+            
+            // Fetch as Blob to bypass 404/CORB issues in srcdoc
+            const response = await fetch(swfUrl);
+            if (!response.ok) throw new Error("File not reachable");
+            const swfData = await response.arrayBuffer();
+
+            window.RufflePlayer = window.RufflePlayer || {};
+            const ruffle = window.RufflePlayer.newest();
+            const player = ruffle.createPlayer();
+            const container = document.getElementById("ruffle-container");
+            
+            container.innerHTML = ""; 
+            container.appendChild(player);
+            
+            player.style.width = "100%";
+            player.style.height = "100%";
+
+            player.load({
+                data: swfData,
+                backgroundColor: "#000000"
+            });
+
+        } catch (e) {
+            status.innerText = "FATAL: SOURCE OFFLINE (404)";
+            status.style.color = "#ff4d4d";
+            console.error(e);
+        }
+    }
+
+    window.addEventListener("load", loadFlash);
+
+    // Panic Key (\)
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "\\") window.location.replace("https://study.thenametycoon.com");
+    });
+</script>
+
+</body>
+</html>
