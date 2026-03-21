@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kindergarten 3 | Codelistener Sync</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; color: #26ff9a; font-family: monospace; }
+        #unity-container { width: 100%; height: 100%; position: fixed; top: 0; left: 0; background: #000; }
+        #unity-canvas { width: 100%; height: 100%; }
+        #boot-loader {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; z-index: 10;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid rgba(38, 255, 154, 0.2);
+            border-radius: 50%; border-top-color: #26ff9a;
+            animation: spin 1s linear infinite; margin: 10px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #progress-bar { width: 220px; height: 2px; background: #111; margin-top: 10px; border-radius: 2px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: #26ff9a; transition: width 0.2s; }
+    </style>
+</head>
+<body>
+    <div id="boot-loader">
+        <div class="spinner"></div>
+        <div id="status">ASSEMBLING K3 CORE...</div>
+        <div id="progress-bar"><div id="progress-fill"></div></div>
+    </div>
+
+    <div id="unity-container">
+        <canvas id="unity-canvas"></canvas>
+    </div>
+
+    <script>
+        const status = document.getElementById("status");
+        const progressFill = document.getElementById("progress-fill");
+        const base = "https://cdn.jsdelivr.net/gh/slqntdevss/Kindergarten3Port/";
+        
+        async function mergeParts(prefix, count) {
+            let buffers = [];
+            for (let i = 1; i <= count; i++) {
+                const partUrl = `${base}${prefix}.part${i}`;
+                const resp = await fetch(partUrl);
+                if (!resp.ok) throw new Error(`Part ${prefix} ${i} missing`);
+                buffers.push(await resp.arrayBuffer());
+            }
+            return new Blob(buffers);
+        }
+
+        async function initSync() {
+            try {
+                status.innerText = "CLONING K3 ASSETS...";
+                
+                // Fetch all split parts and core files in parallel
+                const [dataBlob, wasmBlob, loaderText, frameworkBlob] = await Promise.all([
+                    mergeParts("Build/Kindergarten3Port.data", 2),
+                    mergeParts("Build/Kindergarten3Port.wasm", 3),
+                    fetch(base + "Build/Kindergarten3Port.loader.js").then(r => r.text()),
+                    fetch(base + "Build/Kindergarten3Port.framework.js").then(r => r.blob())
+                ]);
+
+                // Patching the loader to fix the "about:srcdoc" origin crash
+                const patchedLoader = loaderText.replace(
+                    /new URL\((.*?),document.currentScript.src\)/g, 
+                    `new URL($1, "${base}")`
+                );
+
+                const config = {
+                    dataUrl: URL.createObjectURL(dataBlob),
+                    frameworkUrl: URL.createObjectURL(frameworkBlob),
+                    codeUrl: URL.createObjectURL(wasmBlob),
+                    streamingAssetsUrl: base + "StreamingAssets",
+                    companyName: "Con Man Games",
+                    productName: "Kindergarten3",
+                    productVersion: "0.01",
+                    cacheControl: (url) => "no-store", 
+                };
+
+                const script = document.createElement("script");
+                script.src = URL.createObjectURL(new Blob([patchedLoader], { type: 'application/javascript' }));
+                script.onload = () => {
+                    status.innerText = "INITIALIZING K3 ENGINE...";
+                    createUnityInstance(document.querySelector("#unity-canvas"), config, (progress) => {
+                        progressFill.style.width = `${progress * 100}%`;
+                        status.innerText = `SYNCING: ${Math.round(progress * 100)}%`;
+                    }).then(() => {
+                        document.getElementById("boot-loader").style.display = "none";
+                    }).catch((err) => {
+                        status.innerText = "ENGINE BOOT FAILED";
+                        console.error(err);
+                    });
+                };
+                document.body.appendChild(script);
+
+            } catch (e) {
+                status.innerText = "CRITICAL SYNC ERROR";
+                status.style.color = "#ff4d4d";
+                console.error(e);
+            }
+        }
+
+        initSync();
+
+        // Panic Key (\)
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "\\") window.location.replace("https://study.thenametycoon.com");
+        });
+    </script>
+</body>
+</html>
