@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ages of Conflict | Codelistener Sync</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; color: #26ff9a; font-family: monospace; }
+        #gameContainer { width: 100%; height: 100%; position: fixed; top: 0; left: 0; display: flex; align-items: center; justify-content: center; }
+        #unity-canvas { width: 100%; height: 100%; image-rendering: pixelated; background: #000; }
+        #boot-loader { position: absolute; text-align: center; z-index: 10; }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(38, 255, 154, 0.2); border-radius: 50%; border-top-color: #26ff9a; animation: spin 1s linear infinite; margin: 10px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #progress-bar { width: 220px; height: 2px; background: #111; margin-top: 10px; border-radius: 2px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: #26ff9a; transition: width 0.2s; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="unity-canvas"></canvas>
+        <div id="boot-loader">
+            <div class="spinner"></div>
+            <div id="status">FIXING URL RESOLUTION...</div>
+            <div id="progress-bar"><div id="progress-fill"></div></div>
+        </div>
+    </div>
+
+    <script>
+        const status = document.getElementById("status");
+        const progressFill = document.getElementById("progress-fill");
+        const canvas = document.querySelector("#unity-canvas");
+        const base = "https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@main/ages%20of%20conflict/";
+
+        async function fetchAndMerge(files, mimeType) {
+            const buffers = await Promise.all(files.map(async (file) => {
+                const response = await fetch(base + file);
+                if (!response.ok) throw new Error(`Access Denied: ${file}`);
+                return response.arrayBuffer();
+            }));
+            return URL.createObjectURL(new Blob(buffers, { type: mimeType }));
+        }
+
+        async function initSync() {
+            try {
+                status.innerText = "CLONING ASSETS...";
+                
+                const [dataUrl, wasmUrl, frameworkUrl, loaderText] = await Promise.all([
+                    fetchAndMerge(["Build/Web.data.unityweb.part1"], "application/octet-stream"),
+                    fetchAndMerge(["Build/Web.wasm.unityweb.part1", "Build/Web.wasm.unityweb.part2"], "application/wasm"),
+                    fetchAndMerge(["Build/Web.framework.js.unityweb"], "application/javascript"),
+                    fetch(base + "Build/Web.loader.js").then(r => r.text())
+                ]);
+
+                // CRITICAL FIX: The loader regex needs to be more aggressive to catch all URL resolutions
+                const patchedLoader = loaderText.replace(
+                    /new URL\((.*?),document.currentScript.src\)/g, 
+                    `new URL($1, "${base}")`
+                ).replace(
+                    /new URL\((.*?),location.href\)/g, 
+                    `new URL($1, "${base}")`
+                );
+
+                const config = {
+                    dataUrl: dataUrl,
+                    frameworkUrl: frameworkUrl,
+                    codeUrl: wasmUrl,
+                    // Ensuring these are absolute to prevent the "Invalid URL" crash
+                    streamingAssetsUrl: base + "StreamingAssets",
+                    companyName: "Joyful",
+                    productName: "Ages of Conflict",
+                    productVersion: "1.0",
+                };
+
+                const script = document.createElement("script");
+                script.src = URL.createObjectURL(new Blob([patchedLoader], { type: 'application/javascript' }));
+                script.onload = () => {
+                    status.innerText = "HANDSHAKING...";
+                    if (typeof createUnityInstance === "undefined") {
+                        status.innerText = "ENGINE LOAD ERROR";
+                        return;
+                    }
+                    createUnityInstance(canvas, config, (progress) => {
+                        progressFill.style.width = `${progress * 100}%`;
+                        status.innerText = `SYNCING: ${Math.round(progress * 100)}%`;
+                    }).then(() => {
+                        document.getElementById("boot-loader").style.display = "none";
+                    });
+                };
+                document.body.appendChild(script);
+
+            } catch (e) {
+                status.innerText = "SYNC FAILED";
+                status.style.color = "#ff4d4d";
+                console.error(e);
+            }
+        }
+
+        initSync();
+
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "\\") window.location.replace("https://study.thenametycoon.com");
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
