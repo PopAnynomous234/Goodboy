@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kindergarten | Codelistener Sync</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; color: #26ff9a; font-family: monospace; }
+        #unity-container { width: 100%; height: 100%; position: fixed; top: 0; left: 0; background: #000; }
+        #unity-canvas { width: 100%; height: 100%; }
+        #boot-loader {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; z-index: 10;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid rgba(38, 255, 154, 0.2);
+            border-radius: 50%; border-top-color: #26ff9a;
+            animation: spin 1s linear infinite; margin: 10px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #progress-bar { width: 200px; height: 2px; background: #111; margin-top: 10px; border-radius: 2px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: #26ff9a; transition: width 0.2s; }
+    </style>
+</head>
+<body>
+    <div id="boot-loader">
+        <div class="spinner"></div>
+        <div id="status">ASSEMBLING PARTS...</div>
+        <div id="progress-bar"><div id="progress-fill"></div></div>
+    </div>
+
+    <div id="unity-container">
+        <canvas id="unity-canvas"></canvas>
+    </div>
+
+    <script>
+        const status = document.getElementById("status");
+        const progressFill = document.getElementById("progress-fill");
+        const base = "https://cdn.jsdelivr.net/gh/genizy/web-port@main/kindergarten/1/";
+        
+        // Helper to merge split WASM files into a single Blob
+        async function mergeFiles(prefix, start, end) {
+            let buffers = [];
+            for (let i = start; i <= end; i++) {
+                const partUrl = `${base}${prefix}.part${i}`;
+                const resp = await fetch(partUrl);
+                if (!resp.ok) throw new Error(`Part ${i} missing`);
+                buffers.push(await resp.arrayBuffer());
+                progressFill.style.width = `${(i / end) * 30}%`; // First 30% for download
+            }
+            return new Blob(buffers, { type: "application/wasm" });
+        }
+
+        async function initSync() {
+            try {
+                // 1. Fetch and Assemble the split WASM pieces
+                const mergedWasmBlob = await mergeFiles("Build/Build.wasm", 1, 3);
+                const wasmUrl = URL.createObjectURL(mergedWasmBlob);
+
+                // 2. Fetch Core Assets
+                status.innerText = "FETCHING FRAMEWORK...";
+                const [loaderText, frameworkBlob, dataBlob] = await Promise.all([
+                    fetch(base + "Build/Build.loader.js").then(r => r.text()),
+                    fetch(base + "Build/Build.framework.js").then(r => r.blob()),
+                    fetch(base + "Build/Build.data").then(r => r.blob())
+                ]);
+
+                // 3. Patch Loader for local Blob execution
+                // Forces the engine to look at the CDN base instead of about:srcdoc
+                const patchedLoader = loaderText.replace(
+                    /new URL\((.*?),document.currentScript.src\)/g, 
+                    `new URL($1, "${base}")`
+                );
+
+                const config = {
+                    dataUrl: URL.createObjectURL(dataBlob),
+                    frameworkUrl: URL.createObjectURL(frameworkBlob),
+                    codeUrl: wasmUrl,
+                    streamingAssetsUrl: base + "StreamingAssets",
+                    companyName: "SmashGames",
+                    productName: "Kindergarten",
+                    productVersion: "2.04",
+                    cacheControl: (url) => "no-store", // Fixes IndexedDB crashes
+                };
+
+                const script = document.createElement("script");
+                script.src = URL.createObjectURL(new Blob([patchedLoader], { type: 'application/javascript' }));
+                script.onload = () => {
+                    status.innerText = "INITIALIZING ENGINE...";
+                    createUnityInstance(document.querySelector("#unity-canvas"), config, (progress) => {
+                        // Progress starts from 30% (after merge) to 100%
+                        const totalProgress = 30 + (progress * 70);
+                        progressFill.style.width = `${totalProgress}%`;
+                        status.innerText = `SYNCING: ${Math.round(progress * 100)}%`;
+                    }).then(() => {
+                        document.getElementById("boot-loader").style.display = "none";
+                    });
+                };
+                document.body.appendChild(script);
+
+            } catch (e) {
+                status.innerText = "SYNC FAILED";
+                status.style.color = "#ff4d4d";
+                console.error(e);
+            }
+        }
+
+        initSync();
+
+        // Panic Key (\)
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "\\") window.location.replace("https://study.thenametycoon.com");
+        });
+    </script>
+</body>
+</html>
