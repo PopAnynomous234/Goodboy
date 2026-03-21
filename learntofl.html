@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Learn to Fly | UGS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AndreajnRcm4/b398dl2h74v@9a23fbb2373d743a564873251cbb57736ebc1f73/style.css" type="text/css" />
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #ruffle-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        #status { color: #26ff9a; font-family: monospace; text-transform: uppercase; letter-spacing: 2px; z-index: 10; }
+    </style>
+</head>
+<body>
+
+<div id="ruffle-container">
+    <div id="status">Syncing Learn to Fly...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/u-cvlassrom-y/google@main/ruffle.js"></script>
+
+<script>
+    const status = document.getElementById("status");
+    const swfUrl = "https://cdn.jsdelivr.net/gh/benito-camarillo/Whitespider@58638549cf66e46471d33ed01827017dd067acb5/games/flash/learn-to-fly.swf";
+
+    async function loadFlash() {
+        try {
+            // Fetch the SWF as an ArrayBuffer to bypass pathing issues
+            const response = await fetch(swfUrl);
+            if (!response.ok) throw new Error("File 404");
+            const swfData = await response.arrayBuffer();
+
+            window.RufflePlayer = window.RufflePlayer || {};
+            const ruffle = window.RufflePlayer.newest();
+            const player = ruffle.createPlayer();
+            const container = document.getElementById("ruffle-container");
+            
+            container.innerHTML = ""; // Remove status text
+            container.appendChild(player);
+            
+            player.style.width = "100%";
+            player.style.height = "100%";
+
+            // Load the raw data into Ruffle
+            player.load({
+                data: swfData,
+                backgroundColor: "#000000"
+            });
+
+        } catch (e) {
+            status.innerText = "FAILED TO CLONE SWF";
+            status.style.color = "#ff4d4d";
+            console.error(e);
+        }
+    }
+
+    window.addEventListener("load", loadFlash);
+</script>
+
+</body>
+</html>
